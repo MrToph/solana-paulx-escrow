@@ -34,58 +34,58 @@ impl Processor {
         program_id: &Pubkey,
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
-        let initializer = next_account_info(account_info_iter)?;
+        let maker = next_account_info(account_info_iter)?;
 
-        if !initializer.is_signer {
+        if !maker.is_signer {
             return Err(ProgramError::MissingRequiredSignature);
         }
 
-        let temp_token_account = next_account_info(account_info_iter)?;
+        let tmp_token0 = next_account_info(account_info_iter)?;
 
-        let token_to_receive_account = next_account_info(account_info_iter)?;
-        if *token_to_receive_account.owner != spl_token::id() {
+        let maker_token1 = next_account_info(account_info_iter)?;
+        // this could still be a mint_account, but it would fail later at taker when trying to move funds to it?
+        if *maker_token1.owner != spl_token::id() {
             return Err(ProgramError::IncorrectProgramId);
         }
 
-        let escrow_account = next_account_info(account_info_iter)?;
+        // we don't need to check owner==self here because we write to it and it would fail?
+        let escrow_info_account = next_account_info(account_info_iter)?;
         let rent = &Rent::from_account_info(next_account_info(account_info_iter)?)?;
 
-        if !rent.is_exempt(escrow_account.lamports(), escrow_account.data_len()) {
+        if !rent.is_exempt(escrow_info_account.lamports(), escrow_info_account.data_len()) {
             return Err(EscrowError::NotRentExempt.into());
         }
 
-        let mut escrow_info = Escrow::unpack_unchecked(&escrow_account.data.borrow())?;
+        // we overwrite any contents, so it doesn't matter what's written in here
+        let mut escrow_info = Escrow::unpack_unchecked(&escrow_info_account.data.borrow())?;
         if escrow_info.is_initialized() {
             return Err(ProgramError::AccountAlreadyInitialized);
         }
 
         escrow_info.is_initialized = true;
-        escrow_info.initializer_pubkey = *initializer.key;
-        escrow_info.temp_token_account_pubkey = *temp_token_account.key;
-        escrow_info.initializer_token_to_receive_account_pubkey = *token_to_receive_account.key;
-        escrow_info.expected_amount = amount;
+        escrow_info.maker_pubkey = *maker.key;
+        escrow_info.tmp_token0_pubkey = *tmp_token0.key;
+        escrow_info.maker_token1_pubkey = *maker_token1.key;
+        escrow_info.maker_token1_expected_amount = amount;
 
-        Escrow::pack(escrow_info, &mut escrow_account.data.borrow_mut())?;
+        Escrow::pack(escrow_info, &mut escrow_info_account.data.borrow_mut())?;
+        // this pda will control all tmp_token0 accounts
         let (pda, _bump_seed) = Pubkey::find_program_address(&[b"escrow"], program_id);
 
         let token_program = next_account_info(account_info_iter)?;
         let owner_change_ix = spl_token::instruction::set_authority(
             token_program.key,
-            temp_token_account.key,
+            tmp_token0.key,
             Some(&pda),
             spl_token::instruction::AuthorityType::AccountOwner,
-            initializer.key,
-            &[&initializer.key],
+            maker.key,
+            &[&maker.key],
         )?;
 
         msg!("Calling the token program to transfer token account ownership...");
         invoke(
             &owner_change_ix,
-            &[
-                temp_token_account.clone(),
-                initializer.clone(),
-                token_program.clone(),
-            ],
+            &[tmp_token0.clone(), maker.clone(), token_program.clone()],
         )?;
 
         Ok(())

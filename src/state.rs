@@ -8,10 +8,11 @@ use arrayref::{array_mut_ref, array_ref, array_refs, mut_array_refs};
 
 pub struct Escrow {
     pub is_initialized: bool,
-    pub initializer_pubkey: Pubkey,
-    pub temp_token_account_pubkey: Pubkey,
-    pub initializer_token_to_receive_account_pubkey: Pubkey,
-    pub expected_amount: u64,
+    pub maker_pubkey: Pubkey,
+    pub tmp_token0_pubkey: Pubkey,
+    /// maker owned account that will receive the tokens from the taker
+    pub maker_token1_pubkey: Pubkey,
+    pub maker_token1_expected_amount: u64,
 }
 
 // Sealed = Solana's Sized
@@ -29,10 +30,10 @@ impl Pack for Escrow {
         let src = array_ref![src, 0, Escrow::LEN];
         let (
             is_initialized,
-            initializer_pubkey,
-            temp_token_account_pubkey,
-            initializer_token_to_receive_account_pubkey,
-            expected_amount,
+            maker_pubkey,
+            tmp_token0_pubkey,
+            maker_token1_pubkey,
+            maker_token1_expected_amount,
         ) = array_refs![src, 1, 32, 32, 32, 8];
         let is_initialized = match is_initialized {
             [0] => false,
@@ -42,12 +43,12 @@ impl Pack for Escrow {
 
         Ok(Escrow {
             is_initialized,
-            initializer_pubkey: Pubkey::new_from_array(*initializer_pubkey),
-            temp_token_account_pubkey: Pubkey::new_from_array(*temp_token_account_pubkey),
-            initializer_token_to_receive_account_pubkey: Pubkey::new_from_array(
-                *initializer_token_to_receive_account_pubkey,
+            maker_pubkey: Pubkey::new_from_array(*maker_pubkey),
+            tmp_token0_pubkey: Pubkey::new_from_array(*tmp_token0_pubkey),
+            maker_token1_pubkey: Pubkey::new_from_array(
+                *maker_token1_pubkey,
             ),
-            expected_amount: u64::from_le_bytes(*expected_amount),
+            maker_token1_expected_amount: u64::from_le_bytes(*maker_token1_expected_amount),
         })
     }
 
@@ -55,25 +56,17 @@ impl Pack for Escrow {
         let dst = array_mut_ref![dst, 0, Escrow::LEN];
         let (
             is_initialized_dst,
-            initializer_pubkey_dst,
-            temp_token_account_pubkey_dst,
-            initializer_token_to_receive_account_pubkey_dst,
+            maker_pubkey_dst,
+            tmp_token0_pubkey_dst,
+            maker_token1_pubkey_dst,
             expected_amount_dst,
         ) = mut_array_refs![dst, 1, 32, 32, 32, 8];
 
-        let Escrow {
-            is_initialized,
-            initializer_pubkey,
-            temp_token_account_pubkey,
-            initializer_token_to_receive_account_pubkey,
-            expected_amount,
-        } = self;
-
-        is_initialized_dst[0] = *is_initialized as u8;
-        initializer_pubkey_dst.copy_from_slice(initializer_pubkey.as_ref());
-        temp_token_account_pubkey_dst.copy_from_slice(temp_token_account_pubkey.as_ref());
-        initializer_token_to_receive_account_pubkey_dst
-            .copy_from_slice(initializer_token_to_receive_account_pubkey.as_ref());
-        *expected_amount_dst = expected_amount.to_le_bytes();
+        is_initialized_dst[0] = self.is_initialized as u8;
+        maker_pubkey_dst.copy_from_slice(self.maker_pubkey.as_ref());
+        tmp_token0_pubkey_dst.copy_from_slice(self.tmp_token0_pubkey.as_ref());
+        maker_token1_pubkey_dst
+            .copy_from_slice(self.maker_token1_pubkey.as_ref());
+        *expected_amount_dst = self.maker_token1_expected_amount.to_le_bytes();
     }
 }

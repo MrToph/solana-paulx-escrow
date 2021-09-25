@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 use solana_program::program_error::ProgramError;
 
-use crate::error::EscrowError::InvalidInstruction;
+use crate::error::EscrowError::*;
 
 pub enum EscrowInstruction {
   /// Starts the trade by creating and populating an escrow account and transferring ownership of the given temp token account to the PDA
@@ -39,7 +39,7 @@ impl EscrowInstruction {
           .get(..8)
           .and_then(|slice| slice.try_into().ok())
           .map(u64::from_le_bytes)
-          .ok_or(InvalidInstruction)?;
+          .ok_or(InvalidInstructionData)?;
       Ok(amount)
   }
 }

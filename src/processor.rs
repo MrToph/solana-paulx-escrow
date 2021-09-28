@@ -48,6 +48,7 @@ fn process_init_escrow(
 
     // we don't need to check owner==self here because we write to it and it would fail?
     let escrow_info_account = next_account_info(account_info_iter)?;
+    // TODO: try this: sysvar::rent::id()
     let rent = &Rent::from_account_info(next_account_info(account_info_iter)?)?;
 
     if !rent.is_exempt(

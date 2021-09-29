@@ -45,9 +45,7 @@ impl Pack for Escrow {
             is_initialized,
             maker_pubkey: Pubkey::new_from_array(*maker_pubkey),
             tmp_token0_pubkey: Pubkey::new_from_array(*tmp_token0_pubkey),
-            maker_token1_pubkey: Pubkey::new_from_array(
-                *maker_token1_pubkey,
-            ),
+            maker_token1_pubkey: Pubkey::new_from_array(*maker_token1_pubkey),
             maker_token1_expected_amount: u64::from_le_bytes(*maker_token1_expected_amount),
         })
     }
@@ -65,8 +63,7 @@ impl Pack for Escrow {
         is_initialized_dst[0] = self.is_initialized as u8;
         maker_pubkey_dst.copy_from_slice(self.maker_pubkey.as_ref());
         tmp_token0_pubkey_dst.copy_from_slice(self.tmp_token0_pubkey.as_ref());
-        maker_token1_pubkey_dst
-            .copy_from_slice(self.maker_token1_pubkey.as_ref());
+        maker_token1_pubkey_dst.copy_from_slice(self.maker_token1_pubkey.as_ref());
         *expected_amount_dst = self.maker_token1_expected_amount.to_le_bytes();
     }
 }

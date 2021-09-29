@@ -1,11 +1,6 @@
 // https://github.com/hashblock/solana-cli-program-template/blob/main/tests/common/mod.rs
 use {
     solana_program::pubkey::Pubkey,
-    solana_sdk::{
-        commitment_config::CommitmentConfig,
-        signature::{read_keypair_file, Keypair},
-        signer::Signer,
-    },
     solana_validator::test_validator::TestValidatorGenesis,
     std::{path::PathBuf, str::FromStr},
 };

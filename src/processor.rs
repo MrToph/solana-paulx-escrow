@@ -1,3 +1,4 @@
+use crate::{error::EscrowError, instruction::EscrowInstruction, state::Escrow};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -9,7 +10,6 @@ use solana_program::{
     sysvar::{rent::Rent, Sysvar},
 };
 use spl_token::state::Account as TokenAccount;
-use crate::{error::EscrowError, instruction::EscrowInstruction, state::Escrow};
 
 pub fn process_instruction(
     program_id: &Pubkey,
@@ -97,7 +97,11 @@ fn process_init_escrow(
     Ok(())
 }
 
-fn process_exchange(accounts: &[AccountInfo], taker_token0_expected_amount: u64, program_id: &Pubkey) -> ProgramResult {
+fn process_exchange(
+    accounts: &[AccountInfo],
+    taker_token0_expected_amount: u64,
+    program_id: &Pubkey,
+) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
     let taker = next_account_info(account_info_iter)?;
 
@@ -111,13 +115,12 @@ fn process_exchange(accounts: &[AccountInfo], taker_token0_expected_amount: u64,
     // will receive to this
     let taker_token0 = next_account_info(account_info_iter)?;
 
-    /** @audit this could be any account, why no check required that:
-       1) account.owner is spl_token
-       2) account.data.mint is indeed the desired token for maker
-
-       we check it against the one stored in escrow. this one was created by maker.
-       when 
-    */
+    // we check that this account matches the one the maker created below
+    // and check if the amounts match
+    // if the mints (tokens) match is done implicitly when transferring the tokens to taker_token0
+    // actually checking if account matches the one stored in escrow_info should be enough
+    // as maker cannot change it anymore as our program is our owner now.
+    // (would be an issue if we implemented a cancel instruction for maker)
     let pda_tmp_token0 = next_account_info(account_info_iter)?;
     let pda_tmp_token0_data = TokenAccount::unpack(&pda_tmp_token0.data.borrow())?;
 

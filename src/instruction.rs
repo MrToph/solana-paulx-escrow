@@ -1,7 +1,6 @@
 use solana_program::{
     instruction::{AccountMeta, Instruction},
     program_error::ProgramError,
-    program_option::COption,
     pubkey::Pubkey,
     sysvar,
 };
@@ -56,7 +55,7 @@ impl EscrowInstruction {
                 amount: Self::unpack_init_escrow(rest)?,
             },
             1 => Self::Exchange {
-                amount: Self::unpack_exchange(rest)?
+                amount: Self::unpack_exchange(rest)?,
             },
             _ => return Err(InvalidInstruction.into()),
         })
@@ -73,7 +72,7 @@ impl EscrowInstruction {
 
     fn unpack_exchange(input: &[u8]) -> Result<u64, ProgramError> {
         // exchange uses the same payload, just reuse the function re
-        return Self::unpack_init_escrow(input)
+        return Self::unpack_init_escrow(input);
     }
 
     pub fn pack(&self) -> Vec<u8> {
